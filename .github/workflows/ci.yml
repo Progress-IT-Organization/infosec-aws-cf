@@ -52,11 +52,3 @@ jobs:
         aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
         aws-region: "eu-central-1"
 
-    - name: Deploy CloudFormation Stack # Deploy AWS Cloud Formation Stack
-      id: fms-policies
-      uses: aws-actions/aws-cloudformation-github-deploy@v1.0.3
-      with:
-        name: ${{ steps.env-name.outputs.environment }}
-        template: ${{ github.event.inputs.cloudFormationStack }}.yml
-        no-fail-on-empty-changeset: "1"
-

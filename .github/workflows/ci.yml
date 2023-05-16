@@ -52,7 +52,7 @@ jobs:
         aws-region: "us-east-1"
 
     - name: AWS CloudFormation "Deploy CloudFormation Stack" Action for GitHub Actions
-      uses: aws-actions/aws-cloudformation-github-deploy@v1.2.0
+      uses: aws-actions/aws-cloudformation-github-deploy@v1
       with:
         name: ${{ steps.env-name.outputs.environment }}
         template: ${{ github.event.inputs.cloudFormationStack }}.yml

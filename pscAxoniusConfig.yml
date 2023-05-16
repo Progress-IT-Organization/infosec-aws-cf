@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Axonius Config for Discovery all AWS Accounts under this Organization
+Resources:
+
+  PSCAxoniusGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: pscAxonius
+
+  PSCAxoniusPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: pscAxonius
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'organizations:ListAccounts*'
+            Resource: '*'
+            Sid: "OrganizationAccountDiscovery"
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole*'
+            Resource: '*'
+            Sid: "AssumeRoleInAllMemberAccounts"
+      Groups:
+        - !Ref PSCAxoniusGroup
+
+  PSCAxoniusUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Groups:
+        - !Ref PSCAxoniusGroup
+      UserName: pscAxonius
+
+  PSCAxoniusAccessKey:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref PSCAxoniusUser
+
+  PSCAxoniusRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: pscAxonius
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt PSCAxoniusUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+      Policies:
+        - PolicyName: AxoniusPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'organizations:ListAccounts'
+                Resource: '*'
+                Sid: "OrganizationAccountDiscovery"
+              - Effect: Allow
+                Action:
+                  - 'sts:AssumeRole'
+                Resource: "arn:aws:iam::*:role/OrganizationAccountAccessRole"
+                Sid: "AssumeRoleInAllMemberAccounts"
+
+Outputs:
+  AccessKeyId:
+    Value: !Ref PSCAxoniusAccessKey
+  RoleArn:
+    Value: !GetAtt PSCAxoniusRole.Arn

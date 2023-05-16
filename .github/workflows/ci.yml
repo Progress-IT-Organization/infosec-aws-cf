@@ -1,0 +1,62 @@
+# This is a basic workflow to deploy AWS Stack with Akeyless Integration
+
+name: "Deploy to Production"
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      cloudFormationStack:
+        type: choice
+        description: 'Stack to Deploy'
+        options:
+          - pscMSCloudApp
+          - pscAxoniusConfig
+        required: true
+
+jobs:
+  stack:
+    name: Deploy stack to AWS
+    runs-on: ubuntu-latest
+    permissions: # Must change the job token permissions to use JWT auth
+      id-token: write
+      contents: read
+    outputs:
+      env-name: ${{ steps.env-name.outputs.environment }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure Environment Name
+      id: env-name
+      env:
+        REPO: ${{ github.repository }}
+      run: |
+        ENVIRONMENT=`echo $REPO | tr "/" "-"`
+        echo "Environment name: $ENVIRONMENT"
+        echo "::set-output name=environment::$ENVIRONMENT"
+
+    - name: Vault Secrets # Fetch AWS Credentials from Akeyless Dynamic Producer
+      uses: LanceMcCarthy/akeyless-action@v3
+      id: secrets
+      with:
+        access-id: ${{ secrets.AKEYLESS_JWT_ID }}
+        producer-for-aws-access: /InfoSec/aws-076795817913-psc-devops-master
+    
+    - name: Configure AWS credentials # Configure Credentials for AWS CloudFormation
+      id: aws-credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+        aws-region: "eu-central-1"
+
+    - name: Deploy CloudFormation Stack # Deploy AWS Cloud Formation Stack
+      id: fms-policies
+      uses: aws-actions/aws-cloudformation-github-deploy@v1.0.3
+      with:
+        name: ${{ steps.env-name.outputs.environment }}
+        template: ${{ github.event.inputs.cloudFormationStack }}.yml
+        no-fail-on-empty-changeset: "1"
+

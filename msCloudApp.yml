@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a IAM policy for integration with Microsoft Security Cloud Apps 
+Resources:
+
+  msCloudAppGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: msCloudAppGroup
+
+  msCloudAppPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: msCloudAppPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudtrail:DescribeTrails'
+              - 'cloudtrail:LookupEvents'
+              - 'cloudtrail:GetTrailStatus'
+              - 'cloudwatch:Describe*'
+              - 'cloudwatch:Get*'
+              - 'cloudwatch:List*'
+              - 'iam:List*'
+              - 'iam:Get*'
+              - 's3:ListAllMyBuckets'
+              - 's3:PutBucketAcl'
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketLocation'
+            Resource: '*'
+      Groups:
+        - !Ref msCloudAppGroup
+
+  msCloudAppUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Groups:
+        - !Ref msCloudAppGroup
+      UserName: msCloudApp
+
+  msCloudAppAccessKey:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref msCloudAppUser
+
+  msCloudAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt msCloudAppUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+
+Outputs:
+  AccessKeyId:
+    Value: !Ref msCloudAppAccessKey
+  RoleArn:
+    Value: !GetAtt msCloudAppRole.Arn
+  

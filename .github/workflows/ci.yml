@@ -10,8 +10,8 @@ on:
         type: choice
         description: 'Stack to Deploy'
         options:
-          - pscMSCloudApp
-          - pscAxoniusConfig
+          - pscAxoniusIntegrationConfig
+          - pscMsCloudAppIntegrationConfig
         required: true
 
 jobs:
@@ -54,7 +54,7 @@ jobs:
     - name: AWS CloudFormation "Deploy CloudFormation Stack" Action for GitHub Actions
       uses: aws-actions/aws-cloudformation-github-deploy@v1
       with:
-        name: ${{ steps.env-name.outputs.environment }}
+        name: ${{ github.event.inputs.cloudFormationStack }}
         template: ${{ github.event.inputs.cloudFormationStack }}.yml
         capabilities: CAPABILITY_NAMED_IAM
         no-fail-on-empty-changeset: "1"

@@ -43,12 +43,17 @@ jobs:
         access-id: ${{ secrets.AKEYLESS_JWT_ID }}
         producer-for-aws-access: /InfoSec/aws-076795817913-psc-devops-master
     
-    - name: Configure AWS credentials # Configure Credentials for AWS CloudFormation
-      id: aws-credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - name: Configure AWS Credentials For GitHub Actions
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
         aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
-        aws-region: "eu-central-1"
+        aws-region: "us-east-1"
 
+    - name: AWS CloudFormation "Deploy CloudFormation Stack" Action for GitHub Actions
+      uses: aws-actions/aws-cloudformation-github-deploy@v1.2.0
+      with:
+        name: ${{ steps.env-name.outputs.environment }}
+        template: ${{ github.event.inputs.cloudFormationStack }}.yml
+        no-fail-on-empty-changeset: "1"

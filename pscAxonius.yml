@@ -1,0 +1,274 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Axonius-DeployRoles",
+  "Parameters": {
+    "AWSLaunchAccountID": {
+      "Type": "String",
+      "Description": "Provide the account ID for the AWS account where your Axonius User or role will be deployed",
+      "AllowedPattern": "[0-9]+"
+    },
+	"AWSConnectionMethod": {
+		"Type": "String",
+		"Description": "Choose what deployment type you are using - User or Role",
+		"AllowedValues": ["user","role"],
+		"Default": "role"
+	},
+	"AWSOrganizationsAccountID": {
+      "Type": "String",
+	  "Description": "Provide the account ID for the AWS Organizations Root Account",
+      "AllowedPattern": "[0-9]+"
+    },
+	"ReadOnlyRole": {
+      "Type": "String",
+      "Description": "The name of the Axonius ReadOnly Role to be created",
+      "AllowedPattern": "[a-zA-Z0-9\\=\\,\\.\\@\\:\\/\\-_]+",
+	  "Default": "Axonius-ReadOnly"
+    },
+    "AccessName": {
+      "Type": "String",
+      "Description": "The name of the Axonius User or Instance Profile Role to be created",
+      "AllowedPattern": "[a-zA-Z0-9\\=\\,\\.\\@\\:\\/\\-_]+",
+	  "Default": "Axonius-Access"
+    },
+    "OrganizationsRole": {
+      "Type": "String",
+      "Description": "The name of the Axonius Organizations Role to be created",
+      "AllowedPattern": "[a-zA-Z0-9\\=\\,\\.\\@\\:\\/\\-_]+",
+	  "Default": "Axonius-Organizations"
+    }
+  },
+  "Conditions": {
+    "IsOrganizationsAccount": {
+        "Fn::Equals": [
+			{ "Ref": "AWSOrganizationsAccountID" },
+            { "Ref": "AWS::AccountId" }
+        ]
+    },
+	"IsIAMUser": {
+		"Fn::And": [ 
+			{"Fn::Equals": [ { "Ref": "AWSConnectionMethod" }, "user" ]},
+			{"Fn::Equals": [{ "Ref": "AWSLaunchAccountID" }, { "Ref": "AWS::AccountId" }]}
+		]
+	},
+	"IsInstanceProfile": {
+		"Fn::And": [
+			{"Fn::Equals": [{"Ref": "AWSConnectionMethod"}, "role" ]},
+			{"Fn::Equals": [{"Ref": "AWSLaunchAccountID"}, { "Ref": "AWS::AccountId" }]}
+		]
+	}
+  },
+  "Resources": {
+    "AxoniusInstanceProfile": {
+		"Condition": "IsInstanceProfile",
+		"Type": "AWS::IAM::Role",
+		"Properties": {
+			"AssumeRolePolicyDocument": {
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "ec2.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}
+				]
+			},
+        "Policies": [
+          {
+            "PolicyName": "Axonius-InstanceProfile-Policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": "sts:AssumeRole",
+                  "Effect": "Allow",
+                  "Resource": [
+						{ "Fn::Sub" : "arn:aws:iam::*:role/${ReadOnlyRole}" },
+						{ "Fn::Sub" : "arn:aws:iam::${AWSOrganizationsAccountID}:role/${OrganizationsRole}" }
+					]	
+                }
+              ]
+            }
+          }
+        ],
+        "RoleName": { "Ref": "AccessName" }
+      }
+    },
+    "AxoniusUser": {
+		"Condition": "IsIAMUser",
+		"Type": "AWS::IAM::User",
+		"Properties": {
+        "Policies": [
+          {
+            "PolicyName": "Axonius-User-Policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": "sts:AssumeRole",
+                  "Effect": "Allow",
+                  "Resource": [
+						{ "Fn::Sub" : "arn:aws:iam::*:role/${ReadOnlyRole}" },
+						{ "Fn::Sub" : "arn:aws:iam::${AWSOrganizationsAccountID}:role/${OrganizationsRole}" }
+					]	
+                }
+              ]
+            }
+          }
+        ],
+        "UserName": { "Ref": "AccessName" }
+      }
+    },
+	"AxoniusOrganizationsRole": {
+		"Condition": "IsOrganizationsAccount",
+		"Type": "AWS::IAM::Role",
+		"Properties": {
+			"AssumeRolePolicyDocument": {
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Principal": {
+							"AWS" : { "Ref" : "AWSLaunchAccountID" }
+						},
+						"Action" : "sts:AssumeRole",
+						"Condition" : {
+							"StringEquals": {"aws:PrincipalArn": { "Fn::Sub" : "arn:aws:iam::${AWSLaunchAccountID}:${AWSConnectionMethod}/${AccessName}" }}
+						}
+					}
+				]
+			},
+		"Policies": [
+			{
+				"PolicyName": "Axonius-Organizations-Policy",
+				"PolicyDocument" : {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Action": "organizations:ListAccounts",
+							"Effect": "Allow",
+							"Resource": "*"
+						}
+					]
+				}
+			}
+		],
+		"RoleName": { "Ref": "OrganizationsRole" }
+		}
+	},
+	"AxoniusReadRole": {
+		"Type": "AWS::IAM::Role",
+		"Properties": {
+			"AssumeRolePolicyDocument": {
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Principal": {
+							"AWS": { "Ref" : "AWSLaunchAccountID" }
+						},
+						"Action" : "sts:AssumeRole",
+						"Condition" : {
+							"StringEquals": {"aws:PrincipalArn": { "Fn::Sub" : "arn:aws:iam::${AWSLaunchAccountID}:${AWSConnectionMethod}/${AccessName}" }}
+						}
+					}
+				]
+			},
+		"Policies": [
+			{
+				"PolicyName": "Axonius-ReadOnly-Policy",
+				"PolicyDocument" : {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": [
+								"ec2:Describe*",
+								"iam:GenerateServiceLastAccessedDetails",
+								"iam:Get*",
+								"iam:List*",
+								"iam:GenerateCredentialReport",
+								"ecs:Describe*",
+								"eks:Describe*",
+								"eks:List*",
+								"ecs:List*",
+								"ec2:Get*",
+								"es:List*",
+								"elasticloadbalancing:Describe*",
+								"ssm:Get*",
+								"ssm:List*",
+								"ssm:Describe*",
+								"rds:List*",
+								"rds:Describe*",
+								"s3:List*",
+								"s3:Get*",
+								"cloudtrail:Get*",
+								"cloudtrail:List*",
+								"cloudtrail:Describe*",
+								"cloudfront:List*",
+								"cloudfront:Get*",
+								"Workspaces:Describe*",
+								"Workspaces:List*",
+								"Lambda:Get*",
+								"Lambda:List*",
+								"apigateway:Get*",
+								"route53:Get*",
+								"route53:List*",
+								"organizations:Describe*",
+								"organizations:List*",
+								"waf:GetWebACL",
+								"waf:ListWebACLs",
+								"waf-regional:GetWebACL",
+								"waf-regional:GetWebACLForResource",    
+								"waf-regional:ListWebACLs",
+								"wafv2:GetWebACL*",
+								"wafv2:GetWebACLForResource",
+								"wafv2:ListWebACLs",
+								"acm:DescribeCertificate",
+								"dynamodb:ListTables",
+								"dynamodb:DescribeTable",
+								"dynamodb:ListGlobalTables",
+								"dynamodb:DescribeGlobalTable",
+								"dynamodb:DescribeGlobalTableSettings"
+							],
+							"Resource": "*"
+						}
+					]
+				}
+			},
+			{
+				"PolicyName": "Axonius-CC-Policy",
+				"PolicyDocument" : {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Action": [
+								"config:DescribeConfigurationRecorders",
+								"config:DescribeConfigurationRecorderStatus",
+								"iam:GenerateCredentialReport",
+								"logs:DescribeMetricFilters",
+								"cloudwatch:DescribeAlarmsForMetric",
+								"sns:ListSubscriptionsByTopic",
+								"kms:ListKeys"
+							],
+							"Resource": "*"
+						}
+					]
+				}
+			}				
+		],
+		"RoleName": { "Ref": "ReadOnlyRole" }
+		}
+	},
+	"InstanceProfile" : {
+		"Condition": "IsInstanceProfile",
+		"Type": "AWS::IAM::InstanceProfile",
+		"Properties" : {
+			"InstanceProfileName" : { "Ref": "AccessName" },
+			"Roles" : [ { "Ref": "AccessName" } ]
+		}
+	}
+  }
+}

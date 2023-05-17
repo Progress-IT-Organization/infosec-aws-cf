@@ -1,6 +1,6 @@
 # This is a basic workflow to deploy AWS Stack with Akeyless Integration
 
-name: "Deploy Cloud Formation Stacks in PSC AWS devops-master"
+name: "Deploy Cloud Formation Stacks in AWS"
 
 on:
   workflow_dispatch:
@@ -10,8 +10,16 @@ on:
         type: choice
         description: 'Stack to Deploy'
         options:
-          - pscAxoniusIntegrationConfig
-          - pscMsCloudAppIntegrationConfig
+          - pscAkeyless
+          - pscAxonius
+          - pscMsCloudApp
+        required: true
+      awsAccount:
+        type: choice
+        description: 'Select AWS Account'
+        options:
+          - aws-076795817913-psc-devops-master
+          - aws-306038579538-psc-infosec
         required: true
 
 jobs:
@@ -41,7 +49,7 @@ jobs:
       id: secrets
       with:
         access-id: ${{ secrets.AKEYLESS_JWT_ID }}
-        producer-for-aws-access: /InfoSec/aws-076795817913-psc-devops-master
+        producer-for-aws-access: /InfoSec/${{ github.event.inputs.awsAccount }}
     
     - name: Configure AWS Credentials For GitHub Actions
       uses: aws-actions/configure-aws-credentials@v2

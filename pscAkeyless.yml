@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Akeyless Config
+Resources:
+
+  PSCAkeylessGroup:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: pscAkeyless
+
+  PSCAkeylessPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: pscAkeyless
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:DeleteAccessKey*'
+              - 'iam:AttachUserPolicy*'
+              - 'iam:DeleteUser*'
+              - 'iam:ListUserPolicies*'
+              - 'iam:CreateUser*'
+              - 'iam:TagUser*'
+              - 'iam:CreateAccessKey*'
+              - 'iam:CreateLoginProfile*'
+              - 'iam:RemoveUserFromGroup*'
+              - 'iam:AddUserToGroup*'
+              - 'iam:ListGroupsForUser*'
+              - 'iam:ListAttachedUserPolicies*'
+              - 'iam:DetachUserPolicy*'
+              - 'iam:GetLoginProfile*'
+              - 'iam:DeleteLoginProfile*'
+              - 'iam:ListUserTags*'
+              - 'iam:ListAccessKeys*'
+              - 'iam:ListPolicies*'
+              - 'iam:ListRoles*'
+              - 'iam:ListUsers*'
+              - 'iam:ListGroups*'
+            Resource: '*'
+      Groups:
+        - !Ref PSCAkeylessGroup
+
+  PSCAkeylessUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Groups:
+        - !Ref PSCAkeylessGroup
+      UserName: pscAkeyless
+
+  PSCAkeylessAccessKey:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref PSCAkeylessUser
+
+  PSCAkeylessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt PSCAkeylessUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+
+Outputs:
+  AccessKeyId:
+    Value: !Ref PSCAkeylessAccessKey
+  RoleArn:
+    Value: !GetAtt PSCAkeylessRole.Arn

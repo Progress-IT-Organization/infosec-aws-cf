@@ -1,0 +1,12 @@
+{
+    "fetch_roles_from_organization": {
+        "organization_role_for_discovery": "arn:aws:iam::076795817913:role/Axonius-Organizations",
+        "role_name": "Axonius-ReadOnly",
+        "role_path": "",
+        "external_id": "AxoniusProgress",
+        "region": "us-east-1"
+    },
+    "entry_point_role_arn": "arn:aws:iam::076795817913:role/Axonius-Access",
+    "entry_point_external_id": "AxoniusProgress",    
+    "skip_ec2_verification": true
+}

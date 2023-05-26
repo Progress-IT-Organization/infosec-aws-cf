@@ -5,7 +5,8 @@
     "AWSLaunchAccountID": {
       "Type": "String",
       "Description": "Provide the account ID for the AWS account where your Axonius User or role will be deployed",
-      "AllowedPattern": "[0-9]+"
+      "AllowedPattern": "[0-9]+",
+			"Default": "076795817913"
     },
 	"AWSConnectionMethod": {
 		"Type": "String",
@@ -16,7 +17,8 @@
 	"AWSOrganizationsAccountID": {
       "Type": "String",
 	  "Description": "Provide the account ID for the AWS Organizations Root Account",
-      "AllowedPattern": "[0-9]+"
+      "AllowedPattern": "[0-9]+",
+			"Default": "076795817913"
     },
 	"ReadOnlyRole": {
       "Type": "String",
@@ -63,17 +65,22 @@
 		"Type": "AWS::IAM::Role",
 		"Properties": {
 			"AssumeRolePolicyDocument": {
-				"Version": "2012-10-17",
-				"Statement": [
-					{
-						"Effect": "Allow",
-						"Principal": {
-							"Service": "ec2.amazonaws.com"
-						},
-						"Action": "sts:AssumeRole"
-					}
+    		"Version": "2012-10-17",
+    		"Statement": [
+						{
+								"Effect": "Allow",
+								"Principal": {
+										"AWS": "arn:aws:iam::604119231150:root"
+								},
+								"Action": "sts:AssumeRole",
+								"Condition": {
+										"StringEquals": {
+												"sts:ExternalID": "AxoniusProgress"
+										}
+								}
+						}
 				]
-			},
+    		},
         "Policies": [
           {
             "PolicyName": "Axonius-InstanceProfile-Policy",
@@ -149,7 +156,12 @@
 							"Action": "organizations:ListAccounts",
 							"Effect": "Allow",
 							"Resource": "*"
-						}
+						},
+						{
+							"Action": "sts:AssumeRole",
+							"Effect": "Allow",
+							"Resource": "*"
+						}						
 					]
 				}
 			}
